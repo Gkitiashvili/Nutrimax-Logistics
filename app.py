@@ -4,7 +4,7 @@
 # საჭირო ბიბლიოთეკები:
 #   pip install streamlit pandas folium streamlit-folium geopy openpyxl plotly
 # გაშვება:
-#   streamlit run logistics_analytics.py
+#   streamlit run app_2.py
 # ==========================================
 
 import io
@@ -37,7 +37,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# SESSION STATE - THEME PERSISTENCE
+# SESSION STATE - THEME & FILTERS PERSISTENCE
 # ==========================================
 if "theme" not in st.session_state:
     st.session_state.theme = "light"
@@ -326,41 +326,6 @@ st.markdown(f"""
         font-weight: 700;
     }}
     
-    /* ============ CUSTOM BUTTONS ============ */
-    .custom-button {{
-        background: linear-gradient(135deg, {accent_primary}, {accent_secondary});
-        color: #ffffff;
-        border: none;
-        border-radius: 10px;
-        padding: 0.6rem 1.5rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 0.95rem;
-    }}
-    
-    .custom-button:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(9, 105, 218, 0.3);
-    }}
-    
-    .custom-button:active {{
-        transform: translateY(0);
-    }}
-    
-    /* ============ INPUTS ============ */
-    input, select, textarea {{
-        background-color: {bg_secondary} !important;
-        color: {text_primary} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 8px !important;
-    }}
-    
-    input:focus, select:focus, textarea:focus {{
-        border-color: {accent_primary} !important;
-        box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1) !important;
-    }}
-    
     /* ============ EMPTY STATE ============ */
     .empty-state {{
         text-align: center;
@@ -382,78 +347,6 @@ st.markdown(f"""
         font-weight: 700;
         color: {text_primary};
         margin: 0.5rem 0;
-    }}
-    
-    /* ============ MOBILE RESPONSIVE ============ */
-    @media (max-width: 768px) {{
-        .header-wrap {{
-            padding: 1.5rem 1rem;
-            margin-bottom: 1.5rem;
-        }}
-        
-        .main-title {{
-            font-size: 1.5rem;
-        }}
-        
-        .sub-title {{
-            font-size: 0.85rem;
-        }}
-        
-        .metric-card {{
-            padding: 1rem;
-        }}
-        
-        .metric-icon {{
-            font-size: 1.4rem;
-            margin-bottom: 0.4rem;
-        }}
-        
-        .metric-value {{
-            font-size: 1.4rem;
-        }}
-        
-        .offer-card {{
-            padding: 0.8rem;
-            font-size: 0.85rem;
-        }}
-        
-        .offer-icon {{
-            font-size: 1.4rem;
-        }}
-        
-        .stTabs [data-baseweb="tab"] {{
-            padding: 0px 12px;
-            font-size: 0.8rem;
-            height: 44px;
-        }}
-        
-        .section-title {{
-            font-size: 0.95rem;
-        }}
-    }}
-    
-    @media (max-width: 480px) {{
-        .header-wrap {{
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }}
-        
-        .main-title {{
-            font-size: 1.3rem;
-        }}
-        
-        .sub-title {{
-            font-size: 0.8rem;
-            display: none;
-        }}
-        
-        .metric-card {{
-            padding: 0.8rem;
-        }}
-        
-        .metric-value {{
-            font-size: 1.3rem;
-        }}
     }}
     </style>
 """, unsafe_allow_html=True)
@@ -622,28 +515,36 @@ else:
     dest_col = find_col(df.columns, "საბოლოო")
 
 # ==========================================
-# SIDEBAR FILTERS
+# SIDEBAR FILTERS (WITH SESSION STATE RESET)
 # ==========================================
 with st.sidebar:
     st.markdown("### ⚙️ ფილტრი & ძებნა")
     
+    # ფილტრების ერთიანად წაშლის ღილაკი
+    if st.button("🔄 ყველა ფილტრის გასუფთავება", use_container_width=True):
+        for key in ["route_filter", "carrier_filter", "product_filter", "price_slider", "transit_slider", "search_input"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
+
+    st.divider()
     filtered_df = df.copy()
 
     if route_col and not df[route_col].dropna().empty:
         routes = sorted(df[route_col].dropna().astype(str).unique().tolist())
-        sel_routes = st.multiselect("📍 მარშრუტი", routes, default=[])
+        sel_routes = st.multiselect("📍 მარშრუტი", routes, default=[], key="route_filter")
         if sel_routes:
             filtered_df = filtered_df[filtered_df[route_col].astype(str).isin(sel_routes)]
 
     if carrier_col and not df[carrier_col].dropna().empty:
         carriers = sorted(df[carrier_col].dropna().astype(str).unique().tolist())
-        sel_carriers = st.multiselect("🏢 კომპანია", carriers, default=[])
+        sel_carriers = st.multiselect("🏢 კომპანია", carriers, default=[], key="carrier_filter")
         if sel_carriers:
             filtered_df = filtered_df[filtered_df[carrier_col].astype(str).isin(sel_carriers)]
 
     if product_col and not df[product_col].dropna().empty:
         products = sorted(df[product_col].dropna().astype(str).unique().tolist())
-        sel_products = st.multiselect("📦 პროდუქტი", products, default=[])
+        sel_products = st.multiselect("📦 პროდუქტი", products, default=[], key="product_filter")
         if sel_products:
             filtered_df = filtered_df[filtered_df[product_col].astype(str).isin(sel_products)]
 
@@ -652,7 +553,7 @@ with st.sidebar:
     if price_col and df["clean_price"].notna().any():
         p_min, p_max = float(df["clean_price"].min()), float(df["clean_price"].max())
         if p_min < p_max:
-            sel_price = st.slider("💰 ფასი ($)", p_min, p_max, (p_min, p_max))
+            sel_price = st.slider("💰 ფასი ($)", p_min, p_max, (p_min, p_max), key="price_slider")
             filtered_df = filtered_df[
                 filtered_df["clean_price"].between(sel_price[0], sel_price[1]) | filtered_df["clean_price"].isna()
             ]
@@ -660,24 +561,19 @@ with st.sidebar:
     if transit_col and df["clean_transit"].notna().any():
         t_min, t_max = float(df["clean_transit"].min()), float(df["clean_transit"].max())
         if t_min < t_max:
-            sel_transit = st.slider("⏱️ ტრანზიტი (დღე)", t_min, t_max, (t_min, t_max))
+            sel_transit = st.slider("⏱️ ტრანზიტი (დღე)", t_min, t_max, (t_min, t_max), key="transit_slider")
             filtered_df = filtered_df[
                 filtered_df["clean_transit"].between(sel_transit[0], sel_transit[1]) | filtered_df["clean_transit"].isna()
             ]
 
     st.divider()
 
-    search_term = st.text_input("🔎 ძებნა", placeholder="რომელიმე სვეტში...")
+    search_term = st.text_input("🔎 ძებნა", placeholder="რომელიმე სვეტში...", key="search_input")
     if search_term:
         mask = filtered_df.apply(lambda r: search_term.lower() in " ".join(r.astype(str)).lower(), axis=1)
         filtered_df = filtered_df[mask]
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🔄 გასუფთავება", use_container_width=True):
-            st.rerun()
-    with col2:
-        st.metric("შედეგი", f"{len(filtered_df)}/{len(df)}")
+    st.caption(f"ნაპოვნია: {len(filtered_df)} / {len(df)}")
 
 if filtered_df.empty:
     st.warning("⚠️ არჩეული ფილტრებით შედეგი ვერ მოიძებნა")
@@ -800,7 +696,7 @@ with b3:
                     <div class="offer-icon">⭐</div>
                     <div>
                         <b>საუკეთესო ბალანსი</b><br>
-                        <strong>${best_overall.get("clean_price", 0):,.0f}</strong>, {best_overall.get("clean_transit", 0):.0f}დღე
+                        <strong>${best_overall.get("clean_price", 0):,.0f}</strong>, {best_overall.get("clean_transit", 0):.0f} დღე
                     </div>
                 </div>
             """, unsafe_allow_html=True)
@@ -815,15 +711,15 @@ tab1, tab2, tab3 = st.tabs(["📋 ცხრილი", "📊 გრაფიკ�
 with tab1:
     st.markdown('<div class="section-title">📋 დეტალური შედარება</div>', unsafe_allow_html=True)
 
-    sort_options = {"დახმარება": None}
+    sort_options = {"სორტირების გარეშე": None}
     if price_col:
-        sort_options["ფასი ↑"] = ("clean_price", True)
-        sort_options["ფასი ↓"] = ("clean_price", False)
+        sort_options["ფასი ↑ (ზრდადი)"] = ("clean_price", True)
+        sort_options["ფასი ↓ (კლებადი)"] = ("clean_price", False)
     if transit_col:
-        sort_options["დრო ↑"] = ("clean_transit", True)
-        sort_options["დრო ↓"] = ("clean_transit", False)
+        sort_options["დრო ↑ (ზრდადი)"] = ("clean_transit", True)
+        sort_options["დრო ↓ (კლებადი)"] = ("clean_transit", False)
 
-    sort_choice = st.selectbox("დახმარება", list(sort_options.keys()), label_visibility="collapsed")
+    sort_choice = st.selectbox("სორტირება", list(sort_options.keys()), label_visibility="collapsed")
     display_df = filtered_df.drop(columns=["clean_price", "clean_transit"], errors="ignore").copy()
 
     if sort_options[sort_choice]:
@@ -836,7 +732,7 @@ with tab1:
     with pd.ExcelWriter(export_buffer, engine="openpyxl") as writer:
         display_df.to_excel(writer, index=False, sheet_name="Logistics")
     st.download_button(
-        label="⬇️ ჩამოტვირთვა",
+        label="⬇️ Excel ფაილის ჩამოტვირთვა",
         data=export_buffer.getvalue(),
         file_name="logistics_comparison.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
