@@ -4,7 +4,7 @@
 # საჭირო ბიბლიოთეკები:
 #   pip install streamlit pandas folium streamlit-folium geopy openpyxl plotly
 # გაშვება:
-#   streamlit run logistics_analytics.py
+#   streamlit run app.py
 # ==========================================
 
 import io
@@ -24,7 +24,7 @@ except ImportError:
     PLOTLY_AVAILABLE = False
 
 # ==========================================
-# PAGE CONFIG (უნდა იყოს პირველი)
+# PAGE CONFIG
 # ==========================================
 st.set_page_config(
     page_title="Logistics Analytics",
@@ -37,11 +37,8 @@ st.set_page_config(
 )
 
 # ==========================================
-# SESSION STATE - THEME PERSISTENCE
+# SESSION STATE
 # ==========================================
-if "theme" not in st.session_state:
-    st.session_state.theme = "light"
-
 if "cached_df" not in st.session_state:
     st.session_state.cached_df = None
 
@@ -49,7 +46,7 @@ if "cached_filename" not in st.session_state:
     st.session_state.cached_filename = None
 
 # ==========================================
-# GPS COORDINATES DATABASE (CACHED)
+# GPS COORDINATES DATABASE
 # ==========================================
 KNOWN_COORDS = {
     "საფრანგეთი": [46.2276, 2.2137],
@@ -86,30 +83,17 @@ KNOWN_COORDS = {
 }
 
 # ==========================================
-# THEME CONFIG
+# UNIFIED COLOR PALETTE
 # ==========================================
-is_dark = st.session_state.theme == "dark"
-
-if is_dark:
-    bg_primary = "#0d1117"
-    bg_secondary = "#161b22"
-    bg_tertiary = "#21262d"
-    text_primary = "#e6edf3"
-    text_secondary = "#8b949e"
-    border_color = "#30363d"
-    accent_primary = "#58a6ff"
-    accent_secondary = "#79c0ff"
-    card_shadow = "0 3px 12px rgba(0, 0, 0, 0.6)"
-else:
-    bg_primary = "#ffffff"
-    bg_secondary = "#f6f8fa"
-    bg_tertiary = "#eaeef2"
-    text_primary = "#24292f"
-    text_secondary = "#57606a"
-    border_color = "#d0d7de"
-    accent_primary = "#0969da"
-    accent_secondary = "#54aeff"
-    card_shadow = "0 3px 12px rgba(0, 0, 0, 0.06)"
+bg_primary = "#ffffff"
+bg_secondary = "#f6f8fa"
+bg_tertiary = "#eaeef2"
+text_primary = "#24292f"
+text_secondary = "#57606a"
+border_color = "#d0d7de"
+accent_primary = "#0969da"
+accent_secondary = "#54aeff"
+card_shadow = "0 3px 12px rgba(0, 0, 0, 0.06)"
 
 # ==========================================
 # GLOBAL CSS STYLES
@@ -198,7 +182,7 @@ st.markdown(f"""
     
     .metric-card:hover {{
         transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, {"0.12" if is_dark else "0.08"});
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
         border-color: var(--accent-color, {accent_primary});
     }}
     
@@ -254,21 +238,21 @@ st.markdown(f"""
     }}
     
     .best-price-card {{
-        background: {"#0d3f2f" if is_dark else "#ecfdf5"};
-        border: 1px solid {"#1f6f47" if is_dark else "#a7f3d0"};
-        color: {"#5eead4" if is_dark else "#065f46"};
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
     }}
     
     .fastest-card {{
-        background: {"#0c2340" if is_dark else "#eff6ff"};
-        border: 1px solid {"#1e40af" if is_dark else "#bfdbfe"};
-        color: {"#60a5fa" if is_dark else "#1e40af"};
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
     }}
     
     .best-overall-card {{
-        background: {"#3f2a0f" if is_dark else "#fff7ed"};
-        border: 1px solid {"#b45309" if is_dark else "#fed7aa"};
-        color: {"#fbbf24" if is_dark else "#9a3412"};
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        color: #9a3412;
     }}
     
     /* ============ SECTION TITLES ============ */
@@ -326,39 +310,34 @@ st.markdown(f"""
         font-weight: 700;
     }}
     
-    /* ============ CUSTOM BUTTONS ============ */
-    .custom-button {{
-        background: linear-gradient(135deg, {accent_primary}, {accent_secondary});
-        color: #ffffff;
-        border: none;
-        border-radius: 10px;
-        padding: 0.6rem 1.5rem;
+    /* ============ NATIVE BUTTON STYLING ============ */
+    .stButton > button {{
+        background: {bg_secondary};
+        color: {text_primary};
+        border: 1px solid {border_color};
+        border-radius: 8px;
         font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 0.95rem;
+        transition: all 0.2s ease !important;
     }}
     
-    .custom-button:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(9, 105, 218, 0.3);
+    .stButton > button:hover {{
+        border-color: {accent_primary};
+        color: {accent_primary};
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(9, 105, 218, 0.1);
     }}
     
-    .custom-button:active {{
-        transform: translateY(0);
-    }}
-    
-    /* ============ INPUTS ============ */
-    input, select, textarea {{
-        background-color: {bg_secondary} !important;
+    /* აუქმებს ცისფერ ოთხკუთხედს დაჭერისას */
+    .stButton > button:focus:not(:active) {{
+        outline: none !important;
+        box-shadow: none !important;
+        border-color: {border_color} !important;
         color: {text_primary} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 8px !important;
     }}
-    
-    input:focus, select:focus, textarea:focus {{
-        border-color: {accent_primary} !important;
-        box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1) !important;
+
+    .stButton > button:active {{
+        outline: none !important;
+        box-shadow: none !important;
     }}
     
     /* ============ EMPTY STATE ============ */
@@ -384,77 +363,6 @@ st.markdown(f"""
         margin: 0.5rem 0;
     }}
     
-    /* ============ MOBILE RESPONSIVE ============ */
-    @media (max-width: 768px) {{
-        .header-wrap {{
-            padding: 1.5rem 1rem;
-            margin-bottom: 1.5rem;
-        }}
-        
-        .main-title {{
-            font-size: 1.5rem;
-        }}
-        
-        .sub-title {{
-            font-size: 0.85rem;
-        }}
-        
-        .metric-card {{
-            padding: 1rem;
-        }}
-        
-        .metric-icon {{
-            font-size: 1.4rem;
-            margin-bottom: 0.4rem;
-        }}
-        
-        .metric-value {{
-            font-size: 1.4rem;
-        }}
-        
-        .offer-card {{
-            padding: 0.8rem;
-            font-size: 0.85rem;
-        }}
-        
-        .offer-icon {{
-            font-size: 1.4rem;
-        }}
-        
-        .stTabs [data-baseweb="tab"] {{
-            padding: 0px 12px;
-            font-size: 0.8rem;
-            height: 44px;
-        }}
-        
-        .section-title {{
-            font-size: 0.95rem;
-        }}
-    }}
-    
-    @media (max-width: 480px) {{
-        .header-wrap {{
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }}
-        
-        .main-title {{
-            font-size: 1.3rem;
-        }}
-        
-        .sub-title {{
-            font-size: 0.8rem;
-            display: none;
-        }}
-        
-        .metric-card {{
-            padding: 0.8rem;
-        }}
-        
-        .metric-value {{
-            font-size: 1.3rem;
-        }}
-    }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -506,21 +414,12 @@ def find_col(columns, *keywords, exclude=None):
 # ==========================================
 # HEADER SECTION
 # ==========================================
-col_header, col_theme = st.columns([20, 1])
-
-with col_header:
-    st.markdown("""
-        <div class="header-wrap">
-            <div class="main-title">🚚 ლოჯისტიკის ანალიტიკა</div>
-            <div class="sub-title">Excel ფაილი → ანალიზი → გადაწყვეტილებები</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-with col_theme:
-    theme_icon = "☀️" if is_dark else "🌙"
-    if st.button(theme_icon, key="theme_btn", help="theme toggle", use_container_width=True):
-        st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
-        st.rerun()
+st.markdown("""
+    <div class="header-wrap">
+        <div class="main-title">🚚 ლოჯისტიკის ანალიტიკა</div>
+        <div class="sub-title">Excel ფაილი → ანალიზი → გადაწყვეტილებები</div>
+    </div>
+""", unsafe_allow_html=True)
 
 # ==========================================
 # FILE UPLOAD SECTION
@@ -587,17 +486,6 @@ if st.session_state.cached_filename != file_name:
     origin_col = find_col(df.columns, "საწყისი")
     dest_col = find_col(df.columns, "საბოლოო")
 
-    missing_notes = []
-    if not carrier_col:
-        missing_notes.append("სატრანსპორტო კომპანია")
-    if not price_col:
-        missing_notes.append("ღირებულება")
-    if not route_col and not (transit_countries_col and origin_col and dest_col):
-        missing_notes.append("მარშრუტი")
-
-    if missing_notes:
-        st.warning("⚠️ ზოგიერთი სვეტი ვერ ამოიცნო: " + ", ".join(missing_notes))
-
     df["clean_price"] = clean_numeric_series(df[price_col]) if price_col else None
     df["clean_transit"] = clean_numeric_series(df[transit_col]) if transit_col else None
 
@@ -631,19 +519,19 @@ with st.sidebar:
 
     if route_col and not df[route_col].dropna().empty:
         routes = sorted(df[route_col].dropna().astype(str).unique().tolist())
-        sel_routes = st.multiselect("📍 მარშრუტი", routes, default=[])
+        sel_routes = st.multiselect("📍 მარშრუტი", routes, default=[], key="route_filter")
         if sel_routes:
             filtered_df = filtered_df[filtered_df[route_col].astype(str).isin(sel_routes)]
 
     if carrier_col and not df[carrier_col].dropna().empty:
         carriers = sorted(df[carrier_col].dropna().astype(str).unique().tolist())
-        sel_carriers = st.multiselect("🏢 კომპანია", carriers, default=[])
+        sel_carriers = st.multiselect("🏢 კომპანია", carriers, default=[], key="carrier_filter")
         if sel_carriers:
             filtered_df = filtered_df[filtered_df[carrier_col].astype(str).isin(sel_carriers)]
 
     if product_col and not df[product_col].dropna().empty:
         products = sorted(df[product_col].dropna().astype(str).unique().tolist())
-        sel_products = st.multiselect("📦 პროდუქტი", products, default=[])
+        sel_products = st.multiselect("📦 პროდუქტი", products, default=[], key="product_filter")
         if sel_products:
             filtered_df = filtered_df[filtered_df[product_col].astype(str).isin(sel_products)]
 
@@ -652,7 +540,7 @@ with st.sidebar:
     if price_col and df["clean_price"].notna().any():
         p_min, p_max = float(df["clean_price"].min()), float(df["clean_price"].max())
         if p_min < p_max:
-            sel_price = st.slider("💰 ფასი ($)", p_min, p_max, (p_min, p_max))
+            sel_price = st.slider("💰 ფასი ($)", p_min, p_max, (p_min, p_max), key="price_filter")
             filtered_df = filtered_df[
                 filtered_df["clean_price"].between(sel_price[0], sel_price[1]) | filtered_df["clean_price"].isna()
             ]
@@ -660,14 +548,14 @@ with st.sidebar:
     if transit_col and df["clean_transit"].notna().any():
         t_min, t_max = float(df["clean_transit"].min()), float(df["clean_transit"].max())
         if t_min < t_max:
-            sel_transit = st.slider("⏱️ ტრანზიტი (დღე)", t_min, t_max, (t_min, t_max))
+            sel_transit = st.slider("⏱️ ტრანზიტი (დღე)", t_min, t_max, (t_min, t_max), key="transit_filter")
             filtered_df = filtered_df[
                 filtered_df["clean_transit"].between(sel_transit[0], sel_transit[1]) | filtered_df["clean_transit"].isna()
             ]
 
     st.divider()
 
-    search_term = st.text_input("🔎 ძებნა", placeholder="რომელიმე სვეტში...")
+    search_term = st.text_input("🔎 ძებნა", placeholder="რომელიმე სვეტში...", key="global_search")
     if search_term:
         mask = filtered_df.apply(lambda r: search_term.lower() in " ".join(r.astype(str)).lower(), axis=1)
         filtered_df = filtered_df[mask]
@@ -675,6 +563,9 @@ with st.sidebar:
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🔄 გასუფთავება", use_container_width=True):
+            for key in ["route_filter", "carrier_filter", "product_filter", "global_search"]:
+                if key in st.session_state:
+                    del st.session_state[key]
             st.rerun()
     with col2:
         st.metric("შედეგი", f"{len(filtered_df)}/{len(df)}")
@@ -866,7 +757,7 @@ with tab2:
                 fig.update_layout(
                     showlegend=False, coloraxis_showscale=False,
                     xaxis_title="ფასი ($)", yaxis_title="",
-                    template="plotly_dark" if is_dark else "plotly_white",
+                    template="plotly_white",
                     margin=dict(l=0, r=0, t=0, b=0), height=350,
                 )
                 st.plotly_chart(fig, use_container_width=True)
@@ -889,36 +780,21 @@ with tab2:
                 fig2.update_layout(
                     showlegend=False, coloraxis_showscale=False,
                     xaxis_title="დღე", yaxis_title="",
-                    template="plotly_dark" if is_dark else "plotly_white",
+                    template="plotly_white",
                     margin=dict(l=0, r=0, t=0, b=0), height=350,
                 )
                 st.plotly_chart(fig2, use_container_width=True)
-
-    if PLOTLY_AVAILABLE and carrier_col and not filtered_df[["clean_price", "clean_transit"]].dropna().empty:
-        st.markdown("**💠 ფასი vs ტრანზიტი**")
-        scatter_df = filtered_df.dropna(subset=["clean_price", "clean_transit"])
-        fig3 = px.scatter(
-            scatter_df, x="clean_transit", y="clean_price", color=carrier_col,
-            labels={"clean_transit": "ტრანზიტი (დღე)", "clean_price": "ფასი ($)"},
-            size_max=10,
-        )
-        fig3.update_layout(
-            template="plotly_dark" if is_dark else "plotly_white",
-            margin=dict(l=0, r=0, t=0, b=0), height=400
-        )
-        st.plotly_chart(fig3, use_container_width=True)
 
 with tab3:
     st.markdown('<div class="section-title">🗺️ ინტერაქტიული რუკა</div>', unsafe_allow_html=True)
 
     map_cols = st.columns([1, 1, 1])
     with map_cols[0]:
-        tile_choice = st.radio("რუკა:", ["ქუჩა", "სატელიტი", "მარტივი"], horizontal=True, label_visibility="collapsed")
+        tile_choice = st.radio("რუკა:", ["ქუჩა", "სატელიტი"], horizontal=True, label_visibility="collapsed")
     
     tile_map = {
         "ქუჩა": "OpenStreetMap",
-        "სატელიტი": "Esri.WorldImagery",
-        "მარტივი": "cartodbpositron",
+        "სატელიტი": "Esri.WorldImagery"
     }
 
     m = folium.Map(location=[45.0, 35.0], zoom_start=4, tiles=tile_map[tile_choice])
@@ -1010,4 +886,4 @@ with tab3:
                 st.caption(", ".join(sorted(list(unmatched))[:10]))
 
 st.divider()
-st.caption("🚀 Logistics Analytics v2.1 Pro | " + ("🌙 მუქი" if is_dark else "☀️ ღია"))
+st.caption("🚀 Logistics Analytics v2.1 Pro")
