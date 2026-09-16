@@ -40,7 +40,7 @@ st.set_page_config(
 # SESSION STATE - THEME PERSISTENCE
 # ==========================================
 if "theme" not in st.session_state:
-    st.session_state.theme = "light"
+    st.session_state.theme = "dark"
 
 if "cached_df" not in st.session_state:
     st.session_state.cached_df = None
@@ -185,13 +185,19 @@ st.markdown(f"""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }}
     
-    html, body, [class*="css"] {{
-        background-color: {bg_primary};
-        color: {text_primary};
+    /* Strict override for Streamlit layout containers */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
+        background-color: {bg_primary} !important;
+        color: {text_primary} !important;
     }}
     
-    .main {{
-        background-color: {bg_primary};
+    .main, [data-testid="stMainBlockContainer"] {{
+        background-color: {bg_primary} !important;
+        color: {text_primary} !important;
+    }}
+    
+    p, span, label, h1, h2, h3, h4, h5, h6 {{
+        color: {text_primary};
     }}
     
     /* ============ HEADER ============ */
@@ -411,17 +417,18 @@ st.markdown(f"""
         transform: translateY(0);
     }}
     
-    /* ============ INPUTS ============ */
-    input, select, textarea {{
+    /* ============ WIDGETS & INPUTS ============ */
+    input, select, textarea, [data-baseweb="base-input"] {{
         background-color: {bg_secondary} !important;
         color: {text_primary} !important;
         border: 1px solid {border_color} !important;
         border-radius: 8px !important;
     }}
     
-    input:focus, select:focus, textarea:focus {{
-        border-color: {accent_primary} !important;
-        box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1) !important;
+    [data-baseweb="select"] > div {{
+        background-color: {bg_secondary} !important;
+        color: {text_primary} !important;
+        border-color: {border_color} !important;
     }}
     
     /* ============ EMPTY STATE ============ */
@@ -581,7 +588,7 @@ with col_header:
 
 with col_theme:
     theme_icon = "☀️" if is_dark else "🌙"
-    if st.button(theme_icon, key="theme_btn", help="theme toggle", width="stretch"):
+    if st.button(theme_icon, key="theme_btn", help="theme toggle"):
         st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
         st.rerun()
 
@@ -737,7 +744,7 @@ with st.sidebar:
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 გასუფთავება", width="stretch"):
+        if st.button("🔄 გასუფთავება", use_container_width=True):
             for k in ("flt_routes", "flt_carriers", "flt_products", "flt_price", "flt_transit", "flt_search"):
                 st.session_state.pop(k, None)
             st.rerun()
@@ -757,8 +764,6 @@ max_p_val = filtered_df["clean_price"].max()
 avg_t_val = filtered_df["clean_transit"].mean()
 min_t_val = filtered_df["clean_transit"].min()
 
-# Pre-format every KPI value once, guarded against NaN (missing/undetected columns),
-# so a stray "$nan" can never reach the UI.
 min_p_text = f"${min_p_val:,.0f}" if pd.notna(min_p_val) else "—"
 avg_p_text = f"${avg_p_val:,.0f}" if pd.notna(avg_p_val) else "—"
 max_p_text = f"${max_p_val:,.0f}" if pd.notna(max_p_val) else "—"
@@ -900,7 +905,7 @@ with tab1:
         sort_col, ascending = sort_options[sort_choice]
         display_df = display_df.loc[filtered_df.sort_values(sort_col, ascending=ascending, na_position="last").index]
 
-    st.dataframe(display_df, width="stretch", height=420)
+    st.dataframe(display_df, use_container_width=True, height=420)
 
     export_buffer = io.BytesIO()
     with pd.ExcelWriter(export_buffer, engine="openpyxl") as writer:
@@ -909,8 +914,7 @@ with tab1:
         label="⬇️ ჩამოტვირთვა",
         data=export_buffer.getvalue(),
         file_name="logistics_comparison.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        width="content"
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
 with tab2:
@@ -939,7 +943,7 @@ with tab2:
                     template="plotly_dark" if is_dark else "plotly_white",
                     margin=dict(l=0, r=0, t=0, b=0), height=350,
                 )
-                st.plotly_chart(fig, width="stretch")
+                st.plotly_chart(fig, use_container_width=True)
 
     with c2:
         if carrier_col and not filtered_df["clean_transit"].dropna().empty:
@@ -962,7 +966,7 @@ with tab2:
                     template="plotly_dark" if is_dark else "plotly_white",
                     margin=dict(l=0, r=0, t=0, b=0), height=350,
                 )
-                st.plotly_chart(fig2, width="stretch")
+                st.plotly_chart(fig2, use_container_width=True)
 
     if PLOTLY_AVAILABLE and carrier_col and not filtered_df[["clean_price", "clean_transit"]].dropna().empty:
         st.markdown("**💠 ფასი vs ტრანზიტი**")
@@ -976,7 +980,7 @@ with tab2:
             template="plotly_dark" if is_dark else "plotly_white",
             margin=dict(l=0, r=0, t=0, b=0), height=400
         )
-        st.plotly_chart(fig3, width="stretch")
+        st.plotly_chart(fig3, use_container_width=True)
 
 with tab3:
     st.markdown('<div class="section-title">🗺️ ინტერაქტიული რუკა</div>', unsafe_allow_html=True)
