@@ -4,7 +4,7 @@
 # საჭირო ბიბლიოთეკები:
 #   pip install streamlit pandas folium streamlit-folium geopy openpyxl plotly
 # გაშვება:
-#   streamlit run logistics_analytics.py
+#   streamlit run app_2.py
 # ==========================================
 
 import io
@@ -184,6 +184,12 @@ st.markdown(f"""
     * {{
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }}
+    
+    /* Hide Streamlit Deploy Button, Menu, and Footer */
+    .stDeployButton {{display: none !important;}}
+    #MainMenu {{visibility: hidden !important;}}
+    footer {{visibility: hidden !important;}}
+    header {{visibility: hidden !important;}}
     
     /* Strict override for Streamlit layout containers */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
@@ -395,28 +401,6 @@ st.markdown(f"""
         font-weight: 700;
     }}
     
-    /* ============ CUSTOM BUTTONS ============ */
-    .custom-button {{
-        background: linear-gradient(135deg, {accent_primary}, {accent_secondary});
-        color: #ffffff;
-        border: none;
-        border-radius: 10px;
-        padding: 0.6rem 1.5rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 0.95rem;
-    }}
-    
-    .custom-button:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(9, 105, 218, 0.3);
-    }}
-    
-    .custom-button:active {{
-        transform: translateY(0);
-    }}
-    
     /* ============ WIDGETS & INPUTS ============ */
     input, select, textarea, [data-baseweb="base-input"] {{
         background-color: {bg_secondary} !important;
@@ -452,78 +436,6 @@ st.markdown(f"""
         font-weight: 700;
         color: {text_primary};
         margin: 0.5rem 0;
-    }}
-    
-    /* ============ MOBILE RESPONSIVE ============ */
-    @media (max-width: 768px) {{
-        .header-wrap {{
-            padding: 1.5rem 1rem;
-            margin-bottom: 1.5rem;
-        }}
-        
-        .main-title {{
-            font-size: 1.5rem;
-        }}
-        
-        .sub-title {{
-            font-size: 0.85rem;
-        }}
-        
-        .metric-card {{
-            padding: 1rem;
-        }}
-        
-        .metric-icon {{
-            font-size: 1.4rem;
-            margin-bottom: 0.4rem;
-        }}
-        
-        .metric-value {{
-            font-size: 1.4rem;
-        }}
-        
-        .offer-card {{
-            padding: 0.8rem;
-            font-size: 0.85rem;
-        }}
-        
-        .offer-icon {{
-            font-size: 1.4rem;
-        }}
-        
-        .stTabs [data-baseweb="tab"] {{
-            padding: 0px 12px;
-            font-size: 0.8rem;
-            height: 44px;
-        }}
-        
-        .section-title {{
-            font-size: 0.95rem;
-        }}
-    }}
-    
-    @media (max-width: 480px) {{
-        .header-wrap {{
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }}
-        
-        .main-title {{
-            font-size: 1.3rem;
-        }}
-        
-        .sub-title {{
-            font-size: 0.8rem;
-            display: none;
-        }}
-        
-        .metric-card {{
-            padding: 0.8rem;
-        }}
-        
-        .metric-value {{
-            font-size: 1.3rem;
-        }}
     }}
     </style>
 """, unsafe_allow_html=True)
