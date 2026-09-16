@@ -98,7 +98,7 @@ KNOWN_COORDS = {
     "თურქეთი": (39.9334, 32.8597),
     "უკრაინა": (50.4501, 30.5234),
     "გაერთიანებული სამეფო": (51.5074, -0.1278),
-    "ვატიკანი": (41.9029, 12.4534)
+    "ვატიკანი": (41.9029, 12.4534),
     "ავღანეთი": (34.5553, 69.2075),
     "სომხეთი": (40.1792, 44.4991),
     "აზერბაიჯანი": (40.4093, 49.8671),
@@ -581,7 +581,7 @@ with col_header:
 
 with col_theme:
     theme_icon = "☀️" if is_dark else "🌙"
-    if st.button(theme_icon, key="theme_btn", help="theme toggle", use_container_width=True):
+    if st.button(theme_icon, key="theme_btn", help="theme toggle", width="stretch"):
         st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
         st.rerun()
 
@@ -591,11 +591,11 @@ with col_theme:
 uploaded_file = st.file_uploader("📂 ატვირთეთ Excel ფაილი", type=["xlsx", "xls"], key="file_upload")
 
 if uploaded_file is None:
-    st.markdown("""
+    st.markdown(f"""
         <div class="empty-state">
             <div class="empty-state-icon">📊</div>
             <div class="empty-state-title">დაიწყეთ მონაცემების ანალიზი</div>
-            <div style="margin-top: 1rem; line-height: 1.6; color: #8b949e;">
+            <div style="margin-top: 1rem; line-height: 1.6; color: {text_secondary};">
                 ატვირთეთ Excel ფაილი სვეტებით:<br>
                 <strong>სატრანსპორტო კომპანია</strong> • <strong>მარშრუტი</strong> • <strong>ღირებულება</strong> • <strong>ტრანზიტი</strong>
             </div>
@@ -694,19 +694,19 @@ with st.sidebar:
 
     if route_col and not df[route_col].dropna().empty:
         routes = sorted(df[route_col].dropna().astype(str).unique().tolist())
-        sel_routes = st.multiselect("📍 მარშრუტი", routes, default=[])
+        sel_routes = st.multiselect("📍 მარშრუტი", routes, default=[], key="flt_routes")
         if sel_routes:
             filtered_df = filtered_df[filtered_df[route_col].astype(str).isin(sel_routes)]
 
     if carrier_col and not df[carrier_col].dropna().empty:
         carriers = sorted(df[carrier_col].dropna().astype(str).unique().tolist())
-        sel_carriers = st.multiselect("🏢 კომპანია", carriers, default=[])
+        sel_carriers = st.multiselect("🏢 კომპანია", carriers, default=[], key="flt_carriers")
         if sel_carriers:
             filtered_df = filtered_df[filtered_df[carrier_col].astype(str).isin(sel_carriers)]
 
     if product_col and not df[product_col].dropna().empty:
         products = sorted(df[product_col].dropna().astype(str).unique().tolist())
-        sel_products = st.multiselect("📦 პროდუქტი", products, default=[])
+        sel_products = st.multiselect("📦 პროდუქტი", products, default=[], key="flt_products")
         if sel_products:
             filtered_df = filtered_df[filtered_df[product_col].astype(str).isin(sel_products)]
 
@@ -715,7 +715,7 @@ with st.sidebar:
     if price_col and df["clean_price"].notna().any():
         p_min, p_max = float(df["clean_price"].min()), float(df["clean_price"].max())
         if p_min < p_max:
-            sel_price = st.slider("💰 ფასი ($)", p_min, p_max, (p_min, p_max))
+            sel_price = st.slider("💰 ფასი ($)", p_min, p_max, (p_min, p_max), key="flt_price")
             filtered_df = filtered_df[
                 filtered_df["clean_price"].between(sel_price[0], sel_price[1]) | filtered_df["clean_price"].isna()
             ]
@@ -723,21 +723,23 @@ with st.sidebar:
     if transit_col and df["clean_transit"].notna().any():
         t_min, t_max = float(df["clean_transit"].min()), float(df["clean_transit"].max())
         if t_min < t_max:
-            sel_transit = st.slider("⏱️ ტრანზიტი (დღე)", t_min, t_max, (t_min, t_max))
+            sel_transit = st.slider("⏱️ ტრანზიტი (დღე)", t_min, t_max, (t_min, t_max), key="flt_transit")
             filtered_df = filtered_df[
                 filtered_df["clean_transit"].between(sel_transit[0], sel_transit[1]) | filtered_df["clean_transit"].isna()
             ]
 
     st.divider()
 
-    search_term = st.text_input("🔎 ძებნა", placeholder="რომელიმე სვეტში...")
+    search_term = st.text_input("🔎 ძებნა", placeholder="რომელიმე სვეტში...", key="flt_search")
     if search_term:
         mask = filtered_df.apply(lambda r: search_term.lower() in " ".join(r.astype(str)).lower(), axis=1)
         filtered_df = filtered_df[mask]
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 გასუფთავება", use_container_width=True):
+        if st.button("🔄 გასუფთავება", width="stretch"):
+            for k in ("flt_routes", "flt_carriers", "flt_products", "flt_price", "flt_transit", "flt_search"):
+                st.session_state.pop(k, None)
             st.rerun()
     with col2:
         st.metric("შედეგი", f"{len(filtered_df)}/{len(df)}")
@@ -754,6 +756,14 @@ avg_p_val = filtered_df["clean_price"].mean()
 max_p_val = filtered_df["clean_price"].max()
 avg_t_val = filtered_df["clean_transit"].mean()
 min_t_val = filtered_df["clean_transit"].min()
+
+# Pre-format every KPI value once, guarded against NaN (missing/undetected columns),
+# so a stray "$nan" can never reach the UI.
+min_p_text = f"${min_p_val:,.0f}" if pd.notna(min_p_val) else "—"
+avg_p_text = f"${avg_p_val:,.0f}" if pd.notna(avg_p_val) else "—"
+max_p_text = f"${max_p_val:,.0f}" if pd.notna(max_p_val) else "—"
+avg_t_text = f"{avg_t_val:.1f}" if pd.notna(avg_t_val) else "—"
+min_t_text = f"{min_t_val:.0f}" if pd.notna(min_t_val) else "—"
 
 kpi_colors = ["#2563eb", "#7c3aed", "#059669", "#0891b2", "#ea580c"]
 
@@ -779,35 +789,32 @@ with kpi2:
     """, unsafe_allow_html=True)
 
 with kpi3:
-    p_text = f"${min_p_val:,.0f}" if pd.notna(min_p_val) else "—"
     st.markdown(f"""
         <div class="metric-card" style="--accent-color: {kpi_colors[2]};">
             <span class="metric-icon">💵</span>
             <div class="metric-label">მინ. ფასი</div>
-            <div class="metric-value">{p_text}</div>
-            <div class="metric-change">საშ. ${avg_p_val:,.0f}</div>
+            <div class="metric-value">{min_p_text}</div>
+            <div class="metric-change">საშ. {avg_p_text}</div>
         </div>
     """, unsafe_allow_html=True)
 
 with kpi4:
-    avg_p_text = f"${avg_p_val:,.0f}" if pd.notna(avg_p_val) else "—"
     st.markdown(f"""
         <div class="metric-card" style="--accent-color: {kpi_colors[3]};">
             <span class="metric-icon">📊</span>
             <div class="metric-label">საშუალო ფასი</div>
             <div class="metric-value">{avg_p_text}</div>
-            <div class="metric-change">მაქს. ${max_p_val:,.0f}</div>
+            <div class="metric-change">მაქს. {max_p_text}</div>
         </div>
     """, unsafe_allow_html=True)
 
 with kpi5:
-    t_text = f"{avg_t_val:.1f}" if pd.notna(avg_t_val) else "—"
     st.markdown(f"""
         <div class="metric-card" style="--accent-color: {kpi_colors[4]};">
             <span class="metric-icon">⏱️</span>
             <div class="metric-label">საშუალო ტრანზიტი</div>
-            <div class="metric-value">{t_text} დღე</div>
-            <div class="metric-change">მინ. {min_t_val:.0f} დღე</div>
+            <div class="metric-value">{avg_t_text} დღე</div>
+            <div class="metric-change">მინ. {min_t_text} დღე</div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -878,7 +885,7 @@ tab1, tab2, tab3 = st.tabs(["📋 ცხრილი", "📊 გრაფიკ�
 with tab1:
     st.markdown('<div class="section-title">📋 დეტალური შედარება</div>', unsafe_allow_html=True)
 
-    sort_options = {"დახმარება": None}
+    sort_options = {"ნაგულისხმევი": None}
     if price_col:
         sort_options["ფასი ↑"] = ("clean_price", True)
         sort_options["ფასი ↓"] = ("clean_price", False)
@@ -893,7 +900,7 @@ with tab1:
         sort_col, ascending = sort_options[sort_choice]
         display_df = display_df.loc[filtered_df.sort_values(sort_col, ascending=ascending, na_position="last").index]
 
-    st.dataframe(display_df, use_container_width=True, height=420)
+    st.dataframe(display_df, width="stretch", height=420)
 
     export_buffer = io.BytesIO()
     with pd.ExcelWriter(export_buffer, engine="openpyxl") as writer:
@@ -903,7 +910,7 @@ with tab1:
         data=export_buffer.getvalue(),
         file_name="logistics_comparison.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=False
+        width="content"
     )
 
 with tab2:
@@ -932,7 +939,7 @@ with tab2:
                     template="plotly_dark" if is_dark else "plotly_white",
                     margin=dict(l=0, r=0, t=0, b=0), height=350,
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
     with c2:
         if carrier_col and not filtered_df["clean_transit"].dropna().empty:
@@ -955,7 +962,7 @@ with tab2:
                     template="plotly_dark" if is_dark else "plotly_white",
                     margin=dict(l=0, r=0, t=0, b=0), height=350,
                 )
-                st.plotly_chart(fig2, use_container_width=True)
+                st.plotly_chart(fig2, width="stretch")
 
     if PLOTLY_AVAILABLE and carrier_col and not filtered_df[["clean_price", "clean_transit"]].dropna().empty:
         st.markdown("**💠 ფასი vs ტრანზიტი**")
@@ -969,7 +976,7 @@ with tab2:
             template="plotly_dark" if is_dark else "plotly_white",
             margin=dict(l=0, r=0, t=0, b=0), height=400
         )
-        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig3, width="stretch")
 
 with tab3:
     st.markdown('<div class="section-title">🗺️ ინტერაქტიული რუკა</div>', unsafe_allow_html=True)
