@@ -4,7 +4,7 @@
 # საჭირო ბიბლიოთეკები:
 #   pip install streamlit pandas folium streamlit-folium geopy openpyxl plotly
 # გაშვება:
-#   streamlit run app_2.py
+#   streamlit run logistics_analytics.py
 # ==========================================
 
 import io
@@ -40,7 +40,7 @@ st.set_page_config(
 # SESSION STATE - THEME PERSISTENCE
 # ==========================================
 if "theme" not in st.session_state:
-    st.session_state.theme = "dark"
+    st.session_state.theme = "light"
 
 if "cached_df" not in st.session_state:
     st.session_state.cached_df = None
@@ -185,25 +185,13 @@ st.markdown(f"""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }}
     
-    /* Hide Streamlit Deploy Button, Menu, and Footer */
-    .stDeployButton {{display: none !important;}}
-    #MainMenu {{visibility: hidden !important;}}
-    footer {{visibility: hidden !important;}}
-    header {{visibility: hidden !important;}}
-    
-    /* Strict override for Streamlit layout containers */
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
-        background-color: {bg_primary} !important;
-        color: {text_primary} !important;
-    }}
-    
-    .main, [data-testid="stMainBlockContainer"] {{
-        background-color: {bg_primary} !important;
-        color: {text_primary} !important;
-    }}
-    
-    p, span, label, h1, h2, h3, h4, h5, h6 {{
+    html, body, [class*="css"] {{
+        background-color: {bg_primary};
         color: {text_primary};
+    }}
+    
+    .main {{
+        background-color: {bg_primary};
     }}
     
     /* ============ HEADER ============ */
@@ -401,18 +389,39 @@ st.markdown(f"""
         font-weight: 700;
     }}
     
-    /* ============ WIDGETS & INPUTS ============ */
-    input, select, textarea, [data-baseweb="base-input"] {{
+    /* ============ CUSTOM BUTTONS ============ */
+    .custom-button {{
+        background: linear-gradient(135deg, {accent_primary}, {accent_secondary});
+        color: #ffffff;
+        border: none;
+        border-radius: 10px;
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+    }}
+    
+    .custom-button:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(9, 105, 218, 0.3);
+    }}
+    
+    .custom-button:active {{
+        transform: translateY(0);
+    }}
+    
+    /* ============ INPUTS ============ */
+    input, select, textarea {{
         background-color: {bg_secondary} !important;
         color: {text_primary} !important;
         border: 1px solid {border_color} !important;
         border-radius: 8px !important;
     }}
     
-    [data-baseweb="select"] > div {{
-        background-color: {bg_secondary} !important;
-        color: {text_primary} !important;
-        border-color: {border_color} !important;
+    input:focus, select:focus, textarea:focus {{
+        border-color: {accent_primary} !important;
+        box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1) !important;
     }}
     
     /* ============ EMPTY STATE ============ */
@@ -436,6 +445,78 @@ st.markdown(f"""
         font-weight: 700;
         color: {text_primary};
         margin: 0.5rem 0;
+    }}
+    
+    /* ============ MOBILE RESPONSIVE ============ */
+    @media (max-width: 768px) {{
+        .header-wrap {{
+            padding: 1.5rem 1rem;
+            margin-bottom: 1.5rem;
+        }}
+        
+        .main-title {{
+            font-size: 1.5rem;
+        }}
+        
+        .sub-title {{
+            font-size: 0.85rem;
+        }}
+        
+        .metric-card {{
+            padding: 1rem;
+        }}
+        
+        .metric-icon {{
+            font-size: 1.4rem;
+            margin-bottom: 0.4rem;
+        }}
+        
+        .metric-value {{
+            font-size: 1.4rem;
+        }}
+        
+        .offer-card {{
+            padding: 0.8rem;
+            font-size: 0.85rem;
+        }}
+        
+        .offer-icon {{
+            font-size: 1.4rem;
+        }}
+        
+        .stTabs [data-baseweb="tab"] {{
+            padding: 0px 12px;
+            font-size: 0.8rem;
+            height: 44px;
+        }}
+        
+        .section-title {{
+            font-size: 0.95rem;
+        }}
+    }}
+    
+    @media (max-width: 480px) {{
+        .header-wrap {{
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }}
+        
+        .main-title {{
+            font-size: 1.3rem;
+        }}
+        
+        .sub-title {{
+            font-size: 0.8rem;
+            display: none;
+        }}
+        
+        .metric-card {{
+            padding: 0.8rem;
+        }}
+        
+        .metric-value {{
+            font-size: 1.3rem;
+        }}
     }}
     </style>
 """, unsafe_allow_html=True)
@@ -500,7 +581,7 @@ with col_header:
 
 with col_theme:
     theme_icon = "☀️" if is_dark else "🌙"
-    if st.button(theme_icon, key="theme_btn", help="theme toggle"):
+    if st.button(theme_icon, key="theme_btn", help="theme toggle", width="stretch"):
         st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
         st.rerun()
 
@@ -656,7 +737,7 @@ with st.sidebar:
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 გასუფთავება", use_container_width=True):
+        if st.button("🔄 გასუფთავება", width="stretch"):
             for k in ("flt_routes", "flt_carriers", "flt_products", "flt_price", "flt_transit", "flt_search"):
                 st.session_state.pop(k, None)
             st.rerun()
@@ -676,6 +757,8 @@ max_p_val = filtered_df["clean_price"].max()
 avg_t_val = filtered_df["clean_transit"].mean()
 min_t_val = filtered_df["clean_transit"].min()
 
+# Pre-format every KPI value once, guarded against NaN (missing/undetected columns),
+# so a stray "$nan" can never reach the UI.
 min_p_text = f"${min_p_val:,.0f}" if pd.notna(min_p_val) else "—"
 avg_p_text = f"${avg_p_val:,.0f}" if pd.notna(avg_p_val) else "—"
 max_p_text = f"${max_p_val:,.0f}" if pd.notna(max_p_val) else "—"
@@ -817,7 +900,7 @@ with tab1:
         sort_col, ascending = sort_options[sort_choice]
         display_df = display_df.loc[filtered_df.sort_values(sort_col, ascending=ascending, na_position="last").index]
 
-    st.dataframe(display_df, use_container_width=True, height=420)
+    st.dataframe(display_df, width="stretch", height=420)
 
     export_buffer = io.BytesIO()
     with pd.ExcelWriter(export_buffer, engine="openpyxl") as writer:
@@ -826,7 +909,8 @@ with tab1:
         label="⬇️ ჩამოტვირთვა",
         data=export_buffer.getvalue(),
         file_name="logistics_comparison.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        width="content"
     )
 
 with tab2:
@@ -855,7 +939,7 @@ with tab2:
                     template="plotly_dark" if is_dark else "plotly_white",
                     margin=dict(l=0, r=0, t=0, b=0), height=350,
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
     with c2:
         if carrier_col and not filtered_df["clean_transit"].dropna().empty:
@@ -878,7 +962,7 @@ with tab2:
                     template="plotly_dark" if is_dark else "plotly_white",
                     margin=dict(l=0, r=0, t=0, b=0), height=350,
                 )
-                st.plotly_chart(fig2, use_container_width=True)
+                st.plotly_chart(fig2, width="stretch")
 
     if PLOTLY_AVAILABLE and carrier_col and not filtered_df[["clean_price", "clean_transit"]].dropna().empty:
         st.markdown("**💠 ფასი vs ტრანზიტი**")
@@ -892,7 +976,7 @@ with tab2:
             template="plotly_dark" if is_dark else "plotly_white",
             margin=dict(l=0, r=0, t=0, b=0), height=400
         )
-        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig3, width="stretch")
 
 with tab3:
     st.markdown('<div class="section-title">🗺️ ინტერაქტიული რუკა</div>', unsafe_allow_html=True)
